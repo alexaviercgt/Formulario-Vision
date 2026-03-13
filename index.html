@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>¿Qué interruptores necesito encender este año?</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --purple-50: #edfcfe;
+    --purple-200: #a9e4ec;
+    --purple-600: #4aaab7;
+    --purple-800: #347889;
+    --purple-900: #215a5c;
+    --teal-50: #E1F5EE;
+    --teal-800: #085041;
+    --gray-50: #F7F7F5;
+    --gray-100: #EFEFED;
+    --gray-300: #C8C7C0;
+    --bg: #dddddd;
+    --surface: #FFFFFF;
+    --text: #045c8f;
+    --text-muted: #6B6A65;
+    --border: rgba(0,0,0,0.1);
+    --radius: 14px;
+    --radius-sm: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 2rem 1rem;
+  }
+
+  .wrapper { width: 100%; max-width: 560px; }
+  .header { margin-bottom: 1.5rem; }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--purple-50);
+    color: var(--purple-800);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 5px 12px;
+    border-radius: 99px;
+    margin-bottom: 0.75rem;
+  }
+
+  .badge-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--purple-600);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  h1 { font-size: 24px; font-weight: 600; line-height: 1.3; margin-bottom: 0.4rem; }
+  .sub { font-size: 16px; color: var(--text-muted); }
+
+  .card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    padding: 1.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .tabs {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    background: var(--gray-100);
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 1.5rem;
+    gap: 4px;
+  }
+
+  .tab {
+    padding: 9px 4px;
+    text-align: center;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: 7px;
+    border: none;
+    background: transparent;
+    transition: all 0.15s;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .tab.active {
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .form-title { font-size: 18px; font-weight: 600; margin-bottom: 0.25rem; }
+  .form-sub { font-size: 16px; color: var(--text-muted); margin-bottom: 1.25rem; }
+
+  .option-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 15px;
+    margin-bottom: 8px;
+    background: var(--gray-50);
+    border: 1.5px solid transparent;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: 500;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text);
+    text-align: left;
+    transition: all 0.15s;
+  }
+
+  .option-btn:hover:not(:disabled) { background: var(--purple-50); border-color: var(--purple-200); }
+  .option-btn.selected { background: var(--purple-50); border-color: var(--purple-600); color: var(--purple-900); }
+  .option-btn:disabled { cursor: default; opacity: 0.8; }
+
+  .letter {
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    background: var(--surface);
+    border: 1.5px solid var(--gray-300);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 600;
+    font-family: 'DM Mono', monospace;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+
+  .selected .letter { background: var(--purple-600); border-color: var(--purple-600); color: white; }
+
+  .check-icon {
+    margin-left: auto;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--purple-600);
+    display: none;
+    align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .selected .check-icon { display: flex; }
+
+  .submit-btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--purple-600);
+    color: rgb(255, 255, 255);
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 18px; font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    margin-top: 0.5rem;
+    transition: background 0.15s, transform 0.1s;
+  }
+
+  .submit-btn:hover:not(:disabled) { background: var(--purple-800); }
+  .submit-btn:active:not(:disabled) { transform: scale(0.99); }
+  .submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .success-msg {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    background: var(--teal-50);
+    color: var(--teal-800);
+    font-size: 18px; font-weight: 500;
+    padding: 12px 14px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 1rem;
+  }
+
+  .success-msg.visible { display: flex; }
+
+  .total-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.25rem;
+  }
+
+  .total-label { font-size: 13px; color: var(--text-muted); }
+
+  .total-num {
+    font-size: 22px; font-weight: 600;
+    font-family: 'DM Mono', monospace;
+    color: var(--purple-600);
+  }
+
+  .res-row { margin-bottom: 14px; }
+
+  .res-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 5px;
+    font-size: 18px;
+  }
+
+  .res-name { font-weight: 500; }
+  .res-right { font-family: 'DM Mono', monospace; font-size: 16px; color: var(--text-muted); }
+  .res-right strong { color: var(--purple-600); font-weight: 600; }
+
+  .track { height: 8px; background: var(--gray-100); border-radius: 99px; overflow: hidden; }
+
+  .fill {
+    height: 100%;
+    background: var(--purple-200);
+    border-radius: 99px;
+    transition: width 0.7s cubic-bezier(.4,0,.2,1);
+  }
+
+  .fill.leader { background: var(--purple-600); }
+
+  .qr-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.25rem;
+    padding: 0.5rem 0;
+  }
+
+  .qr-frame {
+    background: white;
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+  }
+
+  .url-display {
+    width: 100%;
+    background: var(--gray-50);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    font-size: 16px;
+    font-family: 'DM Mono', monospace;
+    color: var(--text-muted);
+    word-break: break-all;
+    line-height: 1.5;
+  }
+
+  .copy-row { display: flex; gap: 8px; width: 100%; }
+
+  .copy-btn {
+    flex: 1;
+    padding: 10px;
+    background: transparent;
+    border: 1.5px solid var(--gray-300);
+    border-radius: var(--radius-sm);
+    font-size: 16px; font-weight: 500;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    color: var(--text);
+    transition: all 0.15s;
+  }
+
+  .copy-btn:hover { background: var(--gray-50); border-color: var(--purple-200); }
+  .qr-note { font-size: 12px; color: var(--text-muted); line-height: 1.6; text-align: center; }
+
+  .cfg-group { margin-bottom: 1rem; }
+  .cfg-label { font-size: 12px; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+
+  .opt-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+
+  .opt-letter {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    background: var(--gray-100);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 600;
+    font-family: 'DM Mono', monospace;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+
+  .apply-btn {
+    width: 100%;
+    padding: 13px;
+    background: var(--purple-600);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 14px; font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    margin-top: 0.75rem;
+    transition: background 0.15s;
+  }
+
+  .apply-btn:hover { background: var(--purple-800); }
+
+  .reset-link {
+    display: block;
+    text-align: center;
+    font-size: 16px;
+    color: var(--text-muted);
+    margin-top: 0.75rem;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+
+  @media (max-width: 480px) {
+    .tab { font-size: 11px; padding: 8px 2px; }
+    h1 { font-size: 20px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="header">
+    <div class="badge"><span class="badge-dot"></span> En vivo · Firebase</div>
+    <h1>¿Qué interruptores necesito encender este año?</h1>
+    <p class="sub">Seleccioná tu opción y mirá los resultados en tiempo real</p>
+  </div>
+
+  <div class="tabs" style="grid-template-columns: repeat(2, 1fr);">
+    <button class="tab active" onclick="switchTab('form')">Votar</button>
+    <button class="tab" onclick="switchTab('results')">Resultados</button>
+  </div>
+
+  <!-- FORM -->
+  <div id="panel-form" class="panel active">
+    <div class="card">
+      <div class="success-msg" id="success-msg">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="8" fill="#0F6E56"/><path d="M4.5 8l2.5 2.5 4.5-5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        ¡Gracias! Tu respuesta fue registrada.
+      </div>
+      <p class="form-title">¿Qué interruptores necesito encender este año?</p>
+      <p class="form-sub">Seleccioná una opción y enviá tu respuesta</p>
+      <div id="options-container"></div>
+      <button class="submit-btn" id="submit-btn" disabled onclick="submitVote()">Enviar respuesta</button>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="panel-results" class="panel">
+    <div class="card">
+      <div class="total-row">
+        <span class="total-label">Total de respuestas</span>
+        <span class="total-num" id="total-num">0</span>
+      </div>
+      <div id="results-container"></div>
+    </div>
+  </div>
+
+
+
+
+</div>
+
+<script>
+  const LETTERS = ['A','B','C','D','E'];
+  const DEFAULT_OPTIONS = [
+    'Crecer espiritualmente',
+    'Empezar discipulado',
+    'Servir en un equipo',
+    'Presentarle a Jesús a alguien',
+    'Reconectarme con Dios'
+  ];
+
+  function loadLocal() {
+    try {
+      const s = localStorage.getItem('form_config');
+      return s ? JSON.parse(s) : null;
+    } catch(e) { return null; }
+  }
+
+  const saved = loadLocal();
+  let currentOptions = saved ? saved.options : [...DEFAULT_OPTIONS];
+  let currentTitle = saved ? saved.title : '¿Qué interruptores necesito encender este año?';
+  let currentSub = saved ? saved.sub : 'Seleccioná una opción y enviá tu respuesta';
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDrdpJzf-gzoANEii8fITrrDiKNXEKf2vk",
+    authDomain: "formulario-vision.firebaseapp.com",
+    databaseURL: "https://formulario-vision-default-rtdb.firebaseio.com",
+    projectId: "formulario-vision",
+    storageBucket: "formulario-vision.firebasestorage.app",
+    messagingSenderId: "7691691690",
+    appId: "1:7691691690:web:2f76fcb04c097935a392d3"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+  const votesRef = db.ref('votos');
+
+  let votes = [0, 0, 0, 0, 0];
+  let selected = null;
+  let voted = localStorage.getItem('ya_vote') === 'true';
+
+  // Escuchar votos en tiempo real desde Firebase
+  votesRef.on('value', (snapshot) => {
+    const data = snapshot.val() || {};
+    votes = currentOptions.map((_, i) => data['opcion_' + i] || 0);
+    renderResults();
+  });
+
+  function renderForm() {
+    document.getElementById('form-title') && (document.getElementById('form-title').textContent = currentTitle);
+    document.getElementById('form-sub') && (document.getElementById('form-sub').textContent = currentSub);
+    const c = document.getElementById('options-container');
+    c.innerHTML = '';
+    currentOptions.forEach((opt, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'option-btn' + (selected === i ? ' selected' : '');
+      btn.disabled = voted;
+      btn.innerHTML = `<span class="letter">${LETTERS[i]}</span><span>${opt}</span><span class="check-icon"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 5l2.5 2.5L8 3" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></span>`;
+      btn.onclick = () => { if (!voted) { selected = i; renderForm(); } };
+      c.appendChild(btn);
+    });
+    const sb = document.getElementById('submit-btn');
+    sb.disabled = selected === null || voted;
+    sb.textContent = voted ? 'Respuesta enviada' : 'Enviar respuesta';
+    document.getElementById('success-msg').className = 'success-msg' + (voted ? ' visible' : '');
+  }
+
+  function renderResults() {
+    const total = votes.reduce((a, b) => a + b, 0);
+    document.getElementById('total-num').textContent = total;
+    const max = Math.max(...votes);
+    const c = document.getElementById('results-container');
+    c.innerHTML = '';
+    currentOptions.forEach((opt, i) => {
+      const pct = total > 0 ? Math.round(votes[i] / total * 100) : 0;
+      const isLeader = votes[i] === max && max > 0;
+      const row = document.createElement('div');
+      row.className = 'res-row';
+      row.innerHTML = `
+        <div class="res-top">
+          <span class="res-name"><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text-muted);margin-right:6px;">${LETTERS[i]}</span>${opt}</span>
+          <span class="res-right"><strong>${pct}%</strong> · ${votes[i]} voto${votes[i] !== 1 ? 's' : ''}</span>
+        </div>
+        <div class="track"><div class="fill${isLeader ? ' leader' : ''}" style="width:${pct}%"></div></div>`;
+      c.appendChild(row);
+    });
+  }
+
+  function submitVote() {
+    if (selected === null || voted) return;
+    const key = 'opcion_' + selected;
+    votesRef.child(key).transaction(current => (current || 0) + 1);
+    voted = true;
+    localStorage.setItem('ya_vote', 'true');
+    renderForm();
+  }
+
+  let qrGenerated = false;
+  function generateQR() {
+    if (qrGenerated) return;
+    const url = window.location.href;
+    document.getElementById('url-display').textContent = url;
+    document.getElementById('qr-canvas').innerHTML = '';
+    new QRCode(document.getElementById('qr-canvas'), {
+      text: url,
+      width: 200, height: 200,
+      colorDark: '#26215C',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+    qrGenerated = true;
+  }
+
+  function copyUrl() {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      const btn = document.querySelectorAll('.copy-btn')[0];
+      btn.textContent = '¡Copiado!';
+      setTimeout(() => btn.textContent = 'Copiar enlace', 2000);
+    });
+  }
+
+  function renderConfig() {
+    document.getElementById('cfg-title').value = currentTitle;
+    document.getElementById('cfg-sub').value = currentSub;
+    const c = document.getElementById('cfg-opts');
+    c.innerHTML = '';
+    currentOptions.forEach((opt, i) => {
+      const row = document.createElement('div');
+      row.className = 'opt-row';
+      row.innerHTML = `<div class="opt-letter">${LETTERS[i]}</div><input class="opt-input" id="co-${i}" value="${opt}" style="flex:1;padding:9px 12px;font-size:14px;font-family:'DM Sans',sans-serif;background:var(--gray-50);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);">`;
+      c.appendChild(row);
+    });
+  }
+
+  function applyConfig() {
+    const newTitle = document.getElementById('cfg-title').value.trim();
+    const newSub = document.getElementById('cfg-sub').value.trim();
+    const newOpts = currentOptions.map((_, i) => document.getElementById('co-' + i).value.trim() || currentOptions[i]);
+    currentTitle = newTitle || currentTitle;
+    currentSub = newSub || currentSub;
+    currentOptions = newOpts;
+    try { localStorage.setItem('form_config', JSON.stringify({title: currentTitle, sub: currentSub, options: currentOptions})); } catch(e) {}
+    renderForm();
+    renderResults();
+    switchTab('form');
+  }
+
+  function resetVotes() {
+    if (!confirm('¿Reiniciar todos los votos? Esta acción no se puede deshacer.')) return;
+    const reset = {};
+    currentOptions.forEach((_, i) => { reset['opcion_' + i] = 0; });
+    votesRef.set(reset);
+    localStorage.removeItem('ya_vote');
+    voted = false;
+    selected = null;
+    renderForm();
+  }
+
+  function switchTab(name) {
+    document.querySelectorAll('.tab').forEach((t, i) => {
+      t.className = 'tab' + (['form','results'][i] === name ? ' active' : '');
+    });
+    document.querySelectorAll('.panel').forEach(p => p.className = 'panel');
+    document.getElementById('panel-' + name).className = 'panel active';
+  }
+
+  // Panel admin oculto con contraseña
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('admin') !== null) {
+    const pass = prompt('Ingresá la contraseña de administrador:');
+    if (pass === '4736R353t') {
+      const adminCard = document.createElement('div');
+      adminCard.className = 'card';
+      adminCard.style.cssText = 'border:1.5px solid #b91c1c;margin-top:0.75rem;';
+      adminCard.innerHTML = `
+        <p style="font-size:14px;font-weight:600;color:#b91c1c;margin-bottom:0.75rem;">Panel de administración</p>
+        <button onclick="resetVotes()" style="width:100%;padding:13px;background:#b91c1c;color:white;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;">Poner todos los votos en 0</button>
+      `;
+      document.querySelector('.wrapper').appendChild(adminCard);
+    } else if (pass !== null) {
+      alert('Contraseña incorrecta.');
+    }
+  }
+
+  renderForm();
+  renderResults();
+</script>
+</body>
+</html>
